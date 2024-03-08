@@ -14,29 +14,57 @@ const sampleTodo = {
   updated_at: Date.now(),
 };
 
-// makeshift database
 let todos = [sampleTodo];
 
-app.get("/", function (req, res) {
+const findTodoById = (id) => {
+  return todos.find((todo) => todo.id === id);
+};
+
+const sendNotFoundResponse = (res) => {
+  res.status(404).json({
+    message: "No such todo with this ID",
+  });
+};
+
+const sendSuccessResponse = (res, data, message) => {
+  res.status(200).json({
+    data,
+    message,
+  });
+};
+
+const sendErrorResponse = (res, statusCode, message) => {
+  res.status(statusCode).json({
+    message,
+  });
+};
+
+app.get("/", (req, res) => {
   res.send("Hello Express");
 });
 
-// Fetches data
-app.get("/todos", function (req, res) {
-  res.status(200).send({
-    data: todos,
-    message: "Todos fetched successfully",
-  });
+app.get("/todos", (req, res) => {
+  sendSuccessResponse(res, todos, "Todos fetched successfully");
 });
 
-// Creates data, or does modification on backend
-app.post("/todos", function (req, res) {
+app.get("/todos/:id", (req, res) => {
+  const { id } = req.params;
+  const todo = findTodoById(id);
+
+  if (!todo) {
+    sendNotFoundResponse(res);
+    return;
+  }
+
+  sendSuccessResponse(res, todo, "Todo item fetched successfully");
+});
+
+app.post("/todos", (req, res) => {
   const { task } = req.body;
 
   if (!task) {
-    res.status(400).json({
-      message: "No task was set",
-    });
+    sendErrorResponse(res, 400, "No task was set");
+    return;
   }
 
   const todo = {
@@ -48,22 +76,21 @@ app.post("/todos", function (req, res) {
   };
 
   todos.push(todo);
-  res.status(200).json({
-    data: todo,
-    message: "Successfully created todo",
-  });
-
-  res.send(task);
+  sendSuccessResponse(res, todo, "Successfully created todo");
 });
 
-// Update data on server
-app.patch("/todos/:id", function (req, res) {
+app.patch("/todos/:id", (req, res) => {
   const { id } = req.params;
   const { task, is_done } = req.body;
 
-  const targetTodo = todos.find((todo) => todo.id == id);
-  const targetTodoIndex = todos.findIndex((todo) => todo.id == id);
+  const targetTodo = findTodoById(id);
 
+  if (!targetTodo) {
+    sendNotFoundResponse(res);
+    return;
+  }
+
+  const targetTodoIndex = todos.findIndex((todo) => todo.id == id);
   todos[targetTodoIndex] = {
     ...targetTodo,
     task,
@@ -71,24 +98,21 @@ app.patch("/todos/:id", function (req, res) {
     updated_at: Date.now(),
   };
 
-  res.status(200).json({
-    data: todos[targetTodoIndex],
-    message: "Successfully updated todo",
-  });
+  sendSuccessResponse(res, todos[targetTodoIndex], "Successfully updated todo");
 });
 
-// Delete data on server
-app.delete("/todos/:id", function (req, res) {
+app.delete("/todos/:id", (req, res) => {
   const { id } = req.params;
+  const targetTodo = findTodoById(id);
 
-  const targetTodo = todos.find((todo) => todo.id === id);
-  const todosWithoutTarget = todos.filter((todo) => todo.id !== id);
-  todos = todosWithoutTarget;
+  if (!targetTodo) {
+    sendNotFoundResponse(res);
+    return;
+  }
 
-  res.status(200).json({
-    data: targetTodo,
-    message: "Successfully deleted todo",
-  });
+  todos = todos.filter((todo) => todo.id !== id);
+
+  sendSuccessResponse(res, targetTodo, "Successfully deleted todo");
 });
 
 app.listen(PORT);
