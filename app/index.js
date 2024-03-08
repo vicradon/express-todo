@@ -1,8 +1,10 @@
 const express = require("express");
 const { v4: uuid } = require("uuid");
+const dotenv = require("dotenv");
 
+dotenv.config();
 const app = express();
-const PORT = 80;
+const PORT = process.env.PORT;
 
 app.use(express.json());
 
